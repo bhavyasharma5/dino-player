@@ -1,5 +1,4 @@
 import React, { useRef, useState } from 'react';
-import { useVirtualizer } from '@tanstack/react-virtual';
 import { motion } from 'framer-motion';
 import { usePlayer } from '../../context/PlayerContext';
 import { CategorySection } from './CategorySection';
@@ -7,31 +6,20 @@ import { CategorySection } from './CategorySection';
 export function HomePage() {
   const { allData, playerState } = usePlayer();
   const parentRef = useRef<HTMLDivElement>(null);
+  const sectionRefs = useRef<(HTMLDivElement | null)[]>([]);
   const [activeSlug, setActiveSlug] = useState<string | null>(null);
-
-  const rowVirtualizer = useVirtualizer({
-    count: allData.length,
-    getScrollElement: () => parentRef.current,
-    estimateSize: (i) => {
-      const videoCount = allData[i].contents.length;
-      const cardHeight = 230;
-      return 80 + videoCount * cardHeight + 32;
-    },
-    overscan: 1,
-  });
 
   const bottomPad = playerState === 'minimized' ? 100 : 0;
 
   const scrollToCategory = (slug: string | null) => {
     setActiveSlug(slug);
     if (slug === null) {
-      // "All" — scroll to top
       parentRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
     const idx = allData.findIndex(d => d.category.slug === slug);
     if (idx === -1) return;
-    rowVirtualizer.scrollToIndex(idx, { align: 'start', behavior: 'smooth' });
+    sectionRefs.current[idx]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
   return (
@@ -68,9 +56,7 @@ export function HomePage() {
             whileTap={{ scale: 0.95 }}
             onClick={() => scrollToCategory(null)}
             className={`flex-shrink-0 px-3.5 py-1.5 rounded-full text-[12px] font-medium transition-colors ${
-              activeSlug === null
-                ? 'bg-white text-black'
-                : 'bg-[#1e1e1e] text-white hover:bg-[#2a2a2a]'
+              activeSlug === null ? 'bg-white text-black' : 'bg-[#1e1e1e] text-white hover:bg-[#2a2a2a]'
             }`}
           >
             All
@@ -92,34 +78,20 @@ export function HomePage() {
         </div>
       </header>
 
-      {/* Virtual scrollable list */}
+      {/* All categories rendered directly — only 3, no need for virtualization here */}
       <div
         ref={parentRef}
-        className="flex-1 overflow-y-auto"
+        className="flex-1"
         style={{ paddingBottom: bottomPad }}
       >
-        <div
-          style={{
-            height: `${rowVirtualizer.getTotalSize()}px`,
-            width: '100%',
-            position: 'relative',
-          }}
-        >
-          {rowVirtualizer.getVirtualItems().map((virtualRow) => (
-            <div
-              key={virtualRow.index}
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                width: '100%',
-                transform: `translateY(${virtualRow.start}px)`,
-              }}
-            >
-              <CategorySection data={allData[virtualRow.index]} />
-            </div>
-          ))}
-        </div>
+        {allData.map((data, i) => (
+          <div
+            key={data.category.slug}
+            ref={(el) => { sectionRefs.current[i] = el; }}
+          >
+            <CategorySection data={data} />
+          </div>
+        ))}
       </div>
     </div>
   );
