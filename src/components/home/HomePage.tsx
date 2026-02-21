@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { motion } from 'framer-motion';
 import { usePlayer } from '../../context/PlayerContext';
@@ -7,21 +7,32 @@ import { CategorySection } from './CategorySection';
 export function HomePage() {
   const { allData, playerState } = usePlayer();
   const parentRef = useRef<HTMLDivElement>(null);
+  const [activeSlug, setActiveSlug] = useState<string | null>(null);
 
-  // Virtual list by category
   const rowVirtualizer = useVirtualizer({
     count: allData.length,
     getScrollElement: () => parentRef.current,
     estimateSize: (i) => {
-      // Estimate height per category: header (~80px) + cards (depends on count)
       const videoCount = allData[i].contents.length;
-      const cardHeight = 230; // approx per card on mobile
-      return 80 + videoCount * cardHeight + 32; // 32 = gap
+      const cardHeight = 230;
+      return 80 + videoCount * cardHeight + 32;
     },
     overscan: 1,
   });
 
   const bottomPad = playerState === 'minimized' ? 100 : 0;
+
+  const scrollToCategory = (slug: string | null) => {
+    setActiveSlug(slug);
+    if (slug === null) {
+      // "All" — scroll to top
+      parentRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+    const idx = allData.findIndex(d => d.category.slug === slug);
+    if (idx === -1) return;
+    rowVirtualizer.scrollToIndex(idx, { align: 'start', behavior: 'smooth' });
+  };
 
   return (
     <div className="flex flex-col min-h-screen bg-[#0f0f0f]">
@@ -53,16 +64,30 @@ export function HomePage() {
 
         {/* Category chips */}
         <div className="flex gap-2 px-4 pb-3 overflow-x-auto no-scrollbar">
-          <button className="flex-shrink-0 px-3.5 py-1.5 rounded-full bg-white text-black text-[12px] font-medium">
+          <motion.button
+            whileTap={{ scale: 0.95 }}
+            onClick={() => scrollToCategory(null)}
+            className={`flex-shrink-0 px-3.5 py-1.5 rounded-full text-[12px] font-medium transition-colors ${
+              activeSlug === null
+                ? 'bg-white text-black'
+                : 'bg-[#1e1e1e] text-white hover:bg-[#2a2a2a]'
+            }`}
+          >
             All
-          </button>
+          </motion.button>
           {allData.map((d) => (
-            <button
+            <motion.button
               key={d.category.slug}
-              className="flex-shrink-0 px-3.5 py-1.5 rounded-full bg-[#1e1e1e] text-white text-[12px] font-medium hover:bg-[#2a2a2a] transition-colors"
+              whileTap={{ scale: 0.95 }}
+              onClick={() => scrollToCategory(d.category.slug)}
+              className={`flex-shrink-0 px-3.5 py-1.5 rounded-full text-[12px] font-medium transition-colors ${
+                activeSlug === d.category.slug
+                  ? 'bg-white text-black'
+                  : 'bg-[#1e1e1e] text-white hover:bg-[#2a2a2a]'
+              }`}
             >
               {d.category.name}
-            </button>
+            </motion.button>
           ))}
         </div>
       </header>
