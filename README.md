@@ -4,6 +4,10 @@ A mobile-first YouTube video player application built for the **Dino Ventures Fr
 
 Inspired by the YouTube mobile app — featuring smooth gesture interactions, drag-to-minimize, a persistent mini-player, auto-play next with countdown, virtual lists, and a polished dark UI.
 
+## Live Demo
+
+**https://dino-player-eta.vercel.app**
+
 ---
 
 ## Features
